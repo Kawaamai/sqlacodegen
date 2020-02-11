@@ -32,6 +32,7 @@ def main():
     parser.add_argument('--dialect', action='store_true', help='use dialect keywords')
     parser.add_argument('--table-name', help='use a custom table name')
     parser.add_argument('--table-var-prefix', help='use custom table variable prefix (default: "t_"')
+    parser.add_argument('--metadata-name', help="use custom name for the metadata")
     args = parser.parse_args()
 
     if args.version:
@@ -54,5 +55,6 @@ def main():
     generator = CodeGenerator(metadata, args.noindexes, args.noconstraints, args.nojoined,
                               args.noinflect, args.noclasses, dialect=args.dialect,
                               table_name=args.table_name, table_var_prefix=args.table_var_prefix,
+                              metadata_name=args.metadata_name,
                               nocomments=args.nocomments)
     generator.render(outfile)

@@ -334,7 +334,7 @@ class CodeGenerator(object):
                  noinflect=False, noclasses=False, indentation='    ', model_separator='\n\n',
                  ignored_tables=('alembic_version', 'migrate_version'), table_model=ModelTable,
                  class_model=ModelClass, template=None, dialect=False, table_name=None,
-                 table_var_prefix=None, nocomments=False):
+                 table_var_prefix=None, metadata_name=None, nocomments=False):
         super(CodeGenerator, self).__init__()
         self.metadata = metadata
         self.noindexes = noindexes
@@ -352,6 +352,7 @@ class CodeGenerator(object):
         self.inflect_engine = self.create_inflect_engine()
         self.table_name = table_name if table_name is not None else 'Table'
         self.table_var_prefix = table_var_prefix if table_var_prefix is not None else 't_'
+        self.metadata_name = metadata_name if metadata_name is not None else "metadata"
         if template:
             self.template = template
 
@@ -615,8 +616,9 @@ class CodeGenerator(object):
     def render_table(self, model):
         # rendered = 't_{0} = Table(\n{1}{0!r}, metadata,\n'.format(
         #     model.table.name, self.indentation)
-        rendered = '{0}{1} = {2}(\n{3}{1!r}, metadata,\n'.format(
-            self.table_var_prefix, model.table.name, self.table_name, self.indentation)
+        rendered = '{0}{1} = {2}(\n{3}{1!r}, {4},\n'.format(
+            self.table_var_prefix, model.table.name, self.table_name, self.indentation,
+            self.metadata_name)
 
         for column in model.table.columns:
             rendered += '{0}{1},\n'.format(self.indentation, self.render_column(column, True))
