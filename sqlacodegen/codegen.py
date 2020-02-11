@@ -333,7 +333,7 @@ class CodeGenerator(object):
     def __init__(self, metadata, noindexes=False, noconstraints=False, nojoined=False,
                  noinflect=False, noclasses=False, indentation='    ', model_separator='\n\n',
                  ignored_tables=('alembic_version', 'migrate_version'), table_model=ModelTable,
-                 class_model=ModelClass,  template=None, nocomments=False):
+                 class_model=ModelClass, template=None, dialect=False, nocomments=False):
         super(CodeGenerator, self).__init__()
         self.metadata = metadata
         self.noindexes = noindexes
@@ -347,6 +347,7 @@ class CodeGenerator(object):
         self.table_model = table_model
         self.class_model = class_model
         self.nocomments = nocomments
+        self.dialect = dialect
         self.inflect_engine = self.create_inflect_engine()
         if template:
             self.template = template
@@ -573,6 +574,16 @@ class CodeGenerator(object):
                 default_expr = default_expr.replace('"', '\\"')
                 server_default = 'server_default=text("{0}")'.format(default_expr)
 
+        # TODO: need to add `--dialect` flag for this
+        dialect_kwargs = {}
+        if self.dialect:
+            # If sqlalchemy-redshift updates to using dialect_kwargs, then this will be much more
+            # portable than using column.info
+            # dialect_kwargs = column.dialect_kwargs
+            dialect_kwargs = column.info
+        print(dialect_kwargs)
+        print(column.info)
+
         comment = getattr(column, 'comment', None)
         return 'Column({0})'.format(', '.join(
             ([repr(column.name)] if show_name else []) +
@@ -581,6 +592,8 @@ class CodeGenerator(object):
             [repr(x) for x in column.constraints] +
             ['{0}={1}'.format(k, repr(getattr(column, k))) for k in kwarg] +
             ([server_default] if server_default else []) +
+            # ['{0}={1}'.format(n, repr(v)) for n, v in dialect_kwargs.items()] +  # this one is for dialect_kwargs
+            ['{0}_{1}={2}'.format('redshift', n, repr(v)) for n, v in dialect_kwargs.items()] +
             (['comment={!r}'.format(comment)] if comment else [])
         ))
 
@@ -617,6 +630,17 @@ class CodeGenerator(object):
             if len(index.columns) > 1:
                 rendered += '{0}{1},\n'.format(self.indentation, self.render_index(index))
 
+        if self.dialect:
+            print(model.table.dialect_kwargs)
+            for dialect_kwarg, val in model.table.dialect_kwargs.items():
+                if val:
+                    if isinstance(val, str):
+                        val = "'{0}'".format(val)
+                    elif isinstance(val, tuple) or isinstance(val, set):
+                        # we prefer list notation
+                        val = list(val)
+                    rendered += '{0}{1}={2},\n'.format(self.indentation, dialect_kwarg, val)
+
         if model.schema:
             rendered += "{0}schema='{1}',\n".format(self.indentation, model.schema)
 
@@ -640,6 +664,17 @@ class CodeGenerator(object):
                 table_args.append(self.render_index(index))
 
         table_kwargs = {}
+
+        if self.dialect:
+            for dialect_kwarg, val in model.table.dialect_kwargs.items():
+                if val:
+                    if isinstance(val, str):
+                        val = "'{0}'".format(val)
+                    elif isinstance(val, tuple) or isinstance(val, set):
+                        # we prefer list notation
+                        val = list(val)
+                    table_kwargs[dialect_kwarg] = val
+
         if model.schema:
             table_kwargs['schema'] = model.schema
 
