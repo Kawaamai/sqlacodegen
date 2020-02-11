@@ -30,6 +30,8 @@ def main():
     parser.add_argument('--nocomments', action='store_true', help="don't render column comments")
     parser.add_argument('--outfile', help='file to write output to (default: stdout)')
     parser.add_argument('--dialect', action='store_true', help='use dialect keywords')
+    parser.add_argument('--table-name', help='use a custom table name')
+    parser.add_argument('--table-var-prefix', help='use custom table variable prefix (default: "t_"')
     args = parser.parse_args()
 
     if args.version:
@@ -51,5 +53,6 @@ def main():
     outfile = io.open(args.outfile, 'w', encoding='utf-8') if args.outfile else sys.stdout
     generator = CodeGenerator(metadata, args.noindexes, args.noconstraints, args.nojoined,
                               args.noinflect, args.noclasses, dialect=args.dialect,
+                              table_name=args.table_name, table_var_prefix=args.table_var_prefix,
                               nocomments=args.nocomments)
     generator.render(outfile)

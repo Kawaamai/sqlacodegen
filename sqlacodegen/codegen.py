@@ -333,7 +333,8 @@ class CodeGenerator(object):
     def __init__(self, metadata, noindexes=False, noconstraints=False, nojoined=False,
                  noinflect=False, noclasses=False, indentation='    ', model_separator='\n\n',
                  ignored_tables=('alembic_version', 'migrate_version'), table_model=ModelTable,
-                 class_model=ModelClass, template=None, dialect=False, nocomments=False):
+                 class_model=ModelClass, template=None, dialect=False, table_name=None,
+                 table_var_prefix=None, nocomments=False):
         super(CodeGenerator, self).__init__()
         self.metadata = metadata
         self.noindexes = noindexes
@@ -349,6 +350,8 @@ class CodeGenerator(object):
         self.nocomments = nocomments
         self.dialect = dialect
         self.inflect_engine = self.create_inflect_engine()
+        self.table_name = table_name if table_name is not None else 'Table'
+        self.table_var_prefix = table_var_prefix if table_var_prefix is not None else 't_'
         if template:
             self.template = template
 
@@ -581,8 +584,6 @@ class CodeGenerator(object):
             # portable than using column.info
             # dialect_kwargs = column.dialect_kwargs
             dialect_kwargs = column.info
-        print(dialect_kwargs)
-        print(column.info)
 
         comment = getattr(column, 'comment', None)
         return 'Column({0})'.format(', '.join(
@@ -612,8 +613,10 @@ class CodeGenerator(object):
         return rendered + delimiter.join(args) + end
 
     def render_table(self, model):
-        rendered = 't_{0} = Table(\n{1}{0!r}, metadata,\n'.format(
-            model.table.name, self.indentation)
+        # rendered = 't_{0} = Table(\n{1}{0!r}, metadata,\n'.format(
+        #     model.table.name, self.indentation)
+        rendered = '{0}{1} = {2}(\n{3}{1!r}, metadata,\n'.format(
+            self.table_var_prefix, model.table.name, self.table_name, self.indentation)
 
         for column in model.table.columns:
             rendered += '{0}{1},\n'.format(self.indentation, self.render_column(column, True))
@@ -631,7 +634,6 @@ class CodeGenerator(object):
                 rendered += '{0}{1},\n'.format(self.indentation, self.render_index(index))
 
         if self.dialect:
-            print(model.table.dialect_kwargs)
             for dialect_kwarg, val in model.table.dialect_kwargs.items():
                 if val:
                     if isinstance(val, str):
