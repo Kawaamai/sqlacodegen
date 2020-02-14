@@ -578,7 +578,6 @@ class CodeGenerator(object):
                 default_expr = default_expr.replace('"', '\\"')
                 server_default = 'server_default=text("{0}")'.format(default_expr)
 
-        # TODO: need to add `--dialect` flag for this
         dialect_kwargs = {}
         if self.dialect:
             # If sqlalchemy-redshift updates to using dialect_kwargs, then this will be much more
